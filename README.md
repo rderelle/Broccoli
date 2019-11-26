@@ -16,7 +16,7 @@ __Reference:__ <a href="">insert reference</a>
 
 
 ## Requirements
-To run Broccoli, you need (see the [**manual**](manual_Broccoli.pdf) for installation advices):
+To run Broccoli, you need (see the [**manual**](Manual_broccoli_v1.0.pdf) for installation advices):
 - a Unix system (MacOS or Linux)
 - Python version 3.6 or above
 - <a href="https://github.com/etetoolkit/ete">ete3 library</a>
@@ -25,7 +25,7 @@ To run Broccoli, you need (see the [**manual**](manual_Broccoli.pdf) for install
 
 
 ## Running Broccoli
-All parameters and options are available using the `-help` argument (see also the [**manual**](manual_Broccoli.pdf) for more details):
+All parameters and options are available using the `-help` argument (see also the [**manual**](Manual_broccoli_v1.0.pdf) for more details):
 ```
 python broccoli.py -help
 ```
