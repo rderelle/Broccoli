@@ -34,7 +34,7 @@ To test Broccoli with the small example dataset present in the directory `exampl
 python broccoli.py -dir example_dataset
 ```
 Broccoli will store the temporary and output files in 4 directories named `dir_step1` to `dir_step4` (one for each step) located in the current directory.
-In this test run, Broccoli should identify 227 orthologous groups, 1 chimeric protein and 863 orthologous pairs.
+In this test run, Broccoli should identify 226 orthologous groups and 874 orthologous pairs.
 
 
 
