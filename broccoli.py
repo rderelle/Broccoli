@@ -33,7 +33,7 @@ from scripts import broccoli_step4
 
 def parse_args():
     # define and parse command-line arguments
-    parser = argparse.ArgumentParser(description='            Broccoli v1.0', add_help=False, formatter_class=argparse.RawTextHelpFormatter, epilog=' \n')
+    parser = argparse.ArgumentParser(description='            Broccoli v1.01', add_help=False, formatter_class=argparse.RawTextHelpFormatter, epilog=' \n')
     
     common = parser.add_argument_group(' general options')
     common.add_argument('-steps',         help='steps to be performed, comma separated (default = \'1,2,3,4\')', metavar='', type=str, default='1,2,3,4')    
@@ -79,10 +79,9 @@ def parse_args():
 
 
 def clean_dir_name(d):
-    d = d.replace('./','')
-    d = d.replace('/','')
-    d = './' + d + '/'
-    return d.replace('//','/')
+    if d[-1] != '/':
+        d = d + '/'
+    return d
 
 
 def check_python_version():
