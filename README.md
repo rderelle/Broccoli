@@ -20,8 +20,8 @@ To run Broccoli, you need (see the [**manual**](Manual_broccoli_v1.0.pdf) for in
 - a Unix system (MacOS or Linux)
 - Python version 3.6 or above
 - <a href="https://github.com/etetoolkit/ete">ete3 library</a>
-- <a href="https://github.com/bbuchfink/diamond">Diamond</a> version 0.9.25 or above
-- <a href="http://www.microbesonline.org/fasttree/">FastTree2</a>
+- <a href="https://github.com/bbuchfink/diamond">Diamond</a> version 0.9.30 or above
+- <a href="http://www.microbesonline.org/fasttree/">FastTree</a> version 2.1.11 or above (**single-thread version**)
 
 
 ## Running Broccoli
@@ -36,6 +36,9 @@ python broccoli.py -dir example_dataset
 Broccoli will store the temporary and output files in 4 directories named `dir_step1` to `dir_step4` (one for each step) located in the current directory.
 In this test run, Broccoli should identify 226 orthologous groups and 874 orthologous pairs.
 
+
+## Current version: 1.1
+New: alignements are built from CIGAR strings in Diamond output (the version requieres Diamond v0.9.30+)
 
 
 ## Licence
