@@ -38,7 +38,7 @@ In this test run, Broccoli should identify 226 orthologous groups and 874 orthol
 
 
 ## Current version: 1.1
-New: alignements are built from CIGAR strings in Diamond output (the version requieres Diamond v0.9.30+)
+New: alignements are built from CIGAR strings in Diamond outputs (the version requires Diamond v0.9.30+)
 
 
 ## Licence
