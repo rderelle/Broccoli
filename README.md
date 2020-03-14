@@ -8,7 +8,7 @@
 
 Broccoli, a user-friendly pipeline designed to infer with high precision orthologous groups and pairs of proteins using a phylogeny-based approach. Briefly, Broccoli performs ultra-fast phylogenetic analyses on most proteins and builds a network of orthologous relationships. Orthologous groups are then identified from the network using a parameter-free machine learning algorithm (label propagation). Broccoli is also able to detect chimeric proteins resulting from gene-fusion events and to assign these proteins to the corresponding orthologous groups. 
 
-__Reference:__ <a href="">insert reference</a>
+__Reference:__ <a href="https://doi.org/10.1101/2019.12.13.875831">Broccoli: combining phylogenetic and network analyses for orthology assignment</a>
 
 <p align="center">
   <img width="650" height="auto" src="./images/overview_broccoli.png">

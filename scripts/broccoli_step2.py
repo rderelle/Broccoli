@@ -24,6 +24,7 @@ import csv
 import subprocess
 import gzip
 import math
+import re
 from multiprocessing import Pool as ThreadPool 
 from scripts import utils
 try:
@@ -166,14 +167,27 @@ def analyse_species(dict_sp):
     return present, dupli
 
 
-def correct_HSP(qu_seq, ta_seq):
-    # remove insertions from target HSP
-    for i, k in enumerate(qu_seq):
-        if k == '-':
-            #ta_seq[i] = 'z'
-            ta_seq = ta_seq[:i] + 'z' + ta_seq[(i+1):]
-    no_insertion = ta_seq.replace('z','')
-    return no_insertion
+''' new function that create aligned HSP sequences from cigar string '''
+def extract_HSP(full_seq, start, cig):
+    # split cigar 
+    matches = re.findall(r'(\d+)([A-Z]{1})', cig)
+    l_tup = [(m[1], int(m[0])) for m in matches]
+
+    # reconstruct HSP
+    hsp = ''
+    position = start
+    for t in l_tup:
+        # case of aa matches
+        if t[0] == 'M':
+            hsp += full_seq[position:(position + t[1])]
+            position += t[1]
+        # case of deletion
+        elif t[0] == 'D':
+            position += t[1]
+        # case of insertion
+        elif t[0] == 'I':
+            hsp += '-' * t[1]
+    return hsp
 
 
 def process_location(qu_start, qu_end, min_start, max_end):
@@ -214,7 +228,7 @@ def process_file(file):
     for file_db in list_files:
         search_output = index + '_' + file_db.replace('.fas','.gz')
         subprocess.check_output(path_diamond + ' blastp --quiet --threads 1 --db ./dir_step2/' + file_db.replace('.fas','.db') + ' --max-target-seqs ' + str(max_per_species) + ' --query ./dir_step1/' + file + ' \
-                 --compress 1 --more-sensitive -e ' + str(evalue) + ' -o ./dir_step2/' + index + '/' + search_output + ' --outfmt 6 qseqid sseqid qstart qend qseq_gapped sseq_gapped 2>&1', shell=True)
+                 --compress 1 --more-sensitive -e ' + str(evalue) + ' -o ./dir_step2/' + index + '/' + search_output + ' --outfmt 6 qseqid sseqid qstart qend sstart cigar 2>&1', shell=True)
     
     ## get all hits in a dict of list
     all_output = collections.defaultdict(list)
@@ -247,13 +261,13 @@ def process_file(file):
             species = name_2_sp_phylip_seq[target][0]
             qu_start = int(ll[1]) -1
             qu_end   = int(ll[2]) -1
-            qu_seq = ll[3]
-            ta_seq = ll[4]
+            ta_start = int(ll[3]) -1
+            cigar    = ll[4]
             
             if target in all_hits:
                 # extract HSP and add to target seq
-                corrected_HSP = correct_HSP(qu_seq, ta_seq)
-                all_hits[target] = all_hits[target][:qu_start] + corrected_HSP + all_hits[target][qu_end + 1:]
+                HSP = extract_HSP(name_2_sp_phylip_seq[target][2], ta_start, cigar)
+                all_hits[target] = all_hits[target][:qu_start] + HSP + all_hits[target][qu_end + 1:]
                 min_start, max_end = process_location(qu_start, qu_end, min_start, max_end) 
                 
             else:
@@ -261,8 +275,8 @@ def process_file(file):
                 # create target seq
                 all_hits[target] = '-' * len(name_2_sp_phylip_seq[prot][2])
                 # extract HSP
-                corrected_HSP = correct_HSP(qu_seq, ta_seq)
-                all_hits[target] = all_hits[target][:qu_start] + corrected_HSP + all_hits[target][qu_end + 1:]
+                HSP = extract_HSP(name_2_sp_phylip_seq[target][2], ta_start, cigar)
+                all_hits[target] = all_hits[target][:qu_start] + HSP + all_hits[target][qu_end + 1:]
                 min_start, max_end = process_location(qu_start, qu_end, min_start, max_end)              
             
             # reduce output for pickle (convert all element to integers)
