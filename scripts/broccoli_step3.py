@@ -687,7 +687,7 @@ def save_outputs(l_com, d_fusions, d_edges, d_species):
     
     
     ## save dict old names
-    utils.save_pickle('./dir_step3/OGs_in_network.txt', OGs_in_network)
+    utils.save_pickle('./dir_step3/OGs_in_network.pic', OGs_in_network)
           
     ## save gene-fusions
     file_fusions = open('./dir_step3/chimeric_proteins.txt', 'w+')

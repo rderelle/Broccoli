@@ -99,7 +99,7 @@ def load_all_data(f_blast, f_tree):
     trees = utils.get_multi_pickle('./dir_step2/', '_trees.pic')
     
     print(' load OGs')    
-    OGs = utils.get_pickle('./dir_step3/OGs_in_network.txt')
+    OGs = utils.get_pickle('./dir_step3/OGs_in_network.pic')
     l_OGs = [l for l in OGs.values()]
     
     return no_tree, trees, l_OGs
