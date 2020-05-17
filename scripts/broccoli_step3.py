@@ -531,7 +531,7 @@ def remove_false_positives(ll_com, d_edges):
             # count how many hits for this node belong to this community
             nb_found = 0
             for t in search_outputs[node]:
-                if t[0] in set_node:
+                if t[0] != node and t[0] in set_node:
                     nb_found += 1
                     if nb_found == min_nb_hits:
                         break
