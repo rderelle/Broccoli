@@ -23,6 +23,7 @@ import collections
 import csv
 import itertools
 from multiprocessing import Pool as ThreadPool 
+from pathlib import Path
 from scripts import utils
 try:
     from ete3 import PhyloTree
@@ -45,43 +46,42 @@ def step4_orthologous_pairs(lo, nsp, nt):
     print('\n ## load data')
 
     ## create output directory (delete it first if already exists)
-    utils.create_out_dir('./dir_step4')
+    global out_dir
+    out_dir = utils.create_out_dir('dir_step4')
        	
     ## check directory
-    files_blast_list, files_tree = pre_checking('./dir_step2/')
+    files_blast_list, files_tree = pre_checking(Path('dir_step2'))
     
     ## get original and combined names
-    original_name = utils.get_pickle('./dir_step1/original_names.pic')
-    combined_prot = utils.get_pickle('./dir_step1/combined_names.pic')
- 
+    original_name = utils.get_pickle(Path('dir_step1') / 'original_names.pic')
+    combined_prot = utils.get_pickle(Path('dir_step1') / 'combined_names.pic')
+    
     ## load all data
     global all_no_tree, all_trees
     all_no_tree, all_trees, all_OGs = load_all_data(files_blast_list, files_tree)
 
     global prot_2_sp
     ## load prot_name 2 species dict (string version)
-    prot_2_sp = utils.get_pickle('./dir_step2/prot_str_2_species.pic')
+    prot_2_sp = utils.get_pickle(Path('dir_step2') / 'prot_str_2_species.pic')
     
     ## analyse OGs 1 by 1 and save ortho relationships in file
-    print('\n ## analyse OGs 1 by 1\n ' + str(len(all_OGs)) + ' orthologous groups on ' + str(nb_threads) + ' threads')
+    print('\n ## analyse ' + str(len(all_OGs)) + ' orthologous groups 1 by 1')
     multithread_process_OG(all_OGs, nb_threads, original_name, combined_prot, not_same_sp)
 
-    print('')
+    print(' done\n')
     
 
 def pre_checking(directory):
        
     # check if directory exists
-    if not os.path.isdir(directory):
-        sys.exit("\n            ERROR STEP 4: the directory ./dir_step2 does not exist.\n\n")
+    if not directory.exists():
+        sys.exit("\n            ERROR STEP 4: the directory dir_step2 does not exist.\n\n")
    
-    # list the input _no_phylo.txt files
-    list_1, list_2 = list(), list()
-    for file in os.listdir(directory):
-        if file.endswith('_blast_ortho.pic'):
-            list_1.append(file)
-        elif file.endswith('_trees.pic'):
-            list_2.append(file)
+    # list the input _similarity_ortho.pic and _trees.pic pickle files 
+    p = Path(directory / 'dict_similarity_ortho').glob('*')
+    list_1 = [str(x.parts[-1]) for x in p if x.is_file() and '_similarity_ortho.pic' in str(x.parts[-1])] 
+    p = Path(directory / 'dict_trees').glob('*')
+    list_2 = [str(x.parts[-1]) for x in p if x.is_file() and '_trees.pic' in str(x.parts[-1])] 
     list_1.sort()
     list_2.sort()
 
@@ -93,13 +93,13 @@ def pre_checking(directory):
 
 def load_all_data(f_blast, f_tree):
     print(' load NO tree results')  
-    no_tree = utils.get_multi_pickle('./dir_step2/', '_blast_ortho.pic')
+    no_tree = utils.get_multi_pickle(Path('dir_step2') / 'dict_similarity_ortho', '_similarity_ortho.pic')
            
     print(' load tree results') 
-    trees = utils.get_multi_pickle('./dir_step2/', '_trees.pic')
+    trees = utils.get_multi_pickle(Path('dir_step2') / 'dict_trees', '_trees.pic')
     
     print(' load OGs')    
-    OGs = utils.get_pickle('./dir_step3/OGs_in_network.pic')
+    OGs = utils.get_pickle(Path('dir_step3') / 'OGs_in_network.pic')
     l_OGs = [l for l in OGs.values()]
     
     return no_tree, trees, l_OGs
@@ -115,7 +115,7 @@ def multithread_process_OG(l_ogs, n_threads, original, combined, not_same_sp):
     pool.join() 
     
     # save ortho relationships in file
-    outfile = open('./dir_step4/orthologous_pairs.txt','w+')
+    outfile = open(out_dir / 'orthologous_pairs.txt','w+')
     for s in results_2:
         if s != '':
             l = s.split(' ')
@@ -208,7 +208,7 @@ def process_OG(l_OG):
                 names_sister = set(n.name for n in sister_leaves)
                 if '' in names_sister:
                     names_sister = set(filter(None, names_sister))
-                                        
+                
                 if all_spcs == 1 or overlaped_spces == 0 or (overlaped_spces == 1 and sp_only_in_sister >= 2 and sp_only_in_browsed >= 2):
                     # save ortho 
                     for prot1 in names_browsed:

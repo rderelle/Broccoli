@@ -22,25 +22,26 @@ import sys
 import collections
 import itertools
 from multiprocessing import Pool as ThreadPool 
+from pathlib import Path
 from scripts import utils
 
 
 
-def step1_kmer_clustering(dir, ext, ms, lk, ma, nt):
+def step1_kmer_clustering(dir, ext, lk, ma, nt):
    
     # convert the parameters to global variables (horrible hack)
-    global directory, extension, min_seq, length_kmer, min_aa, nb_threads
-    directory, extension, min_seq, length_kmer, min_aa, nb_threads = dir, ext, ms, lk, ma, nt
-    
+    global directory, extension, length_kmer, min_aa, nb_threads
+    directory, extension, length_kmer, min_aa, nb_threads = Path(dir), ext, lk, ma, nt
+
     print('\n --- STEP 1: kmer clustering\n')
     print(' # parameters')
-    print(' proteomes dir : ' + directory)
+    print(' input dir     : ' + str(directory))
     print(' kmer size     : ' + str(length_kmer))
-    print(' min size seq  : ' + str(min_seq))
-    print(' min nb aa     : ' + str(min_aa))
+    print(' kmer nb aa    : ' + str(min_aa))
 
     ## create output directory (delete it first if already exists)
-    utils.create_out_dir('./dir_step1')
+    global out_dir
+    out_dir = utils.create_out_dir('dir_step1')
     
     ## check directory and files
     print('\n # check input files')
@@ -56,23 +57,23 @@ def step1_kmer_clustering(dir, ext, ms, lk, ma, nt):
     pool.join()
     
     ## create log files
-    log_file = open('./dir_step1/log_step1.txt', 'w+')
-    log_file.write('#index	file_name	nb_initial	nb_short	nb_final\n')
+    log_file = open(out_dir / 'log_step1.txt', 'w+')
+    log_file.write('#index	file_name	nb_initial	nb_final\n')
     
     ## save log file and combine other info
     combined = dict()
     names    = dict()
     nb_final = 0
     for l in results_2:
-        log_file.write('	'.join(l[:5]) + '\n')
-        names.update(l[5])
-        combined.update(l[6])
-        nb_final += int(l[4])
+        log_file.write('	'.join(l[:4]) + '\n')
+        names.update(l[4])
+        combined.update(l[5])
+        nb_final += int(l[3])
     
     ## save pickle files
-    utils.save_pickle('./dir_step1/combined_names.pic', combined)
-    utils.save_pickle('./dir_step1/original_names.pic', names)
-    utils.save_pickle('./dir_step1/species_index.pic', dict_files)
+    utils.save_pickle(out_dir / 'combined_names.pic', combined)
+    utils.save_pickle(out_dir / 'original_names.pic', names)
+    utils.save_pickle(out_dir / 'species_index.pic', dict_files)
     
     print(' -> ' + str(nb_final) + ' proteins saved for the next step')
     print ('')
@@ -81,31 +82,36 @@ def step1_kmer_clustering(dir, ext, ms, lk, ma, nt):
 def pre_checking(directory, ext):
     
     # check if input directory exists
-    if not os.path.isdir(directory):
-        sys.exit('\n            ERROR STEP 1: the directory \' ' + directory + ' \' does not exist.\n\n')
+    if not directory.exists():
+        sys.exit('\n            ERROR STEP 1: the directory \' ' + str(directory) + ' \' does not exist.\n\n')
     
     # list the input files inside that directory and (i) count and (ii) check the name
     else: 
-        l_files  = list()
+        p = directory.glob('*' + ext)
+        tmp_l = [str(x.parts[-1]) for x in p if x.is_file()]
+        l_files = list()
+        
         d_nb_seq = dict()
-        s_names  = set()
-        for file in os.listdir(directory):
-            if file.endswith(ext):
-                # save file to list
-                l_files.append( (file, os.path.getsize(directory + file)) )
-                nb_seq = 0
-                # check names
-                content = open(directory + file, "r")
-                for line in content:
-                    if line.startswith('>'):
-                        nb_seq += 1
-                        name = line.split(' ')[0]
-                        if name in s_names:
-                            print('problem : the protein name \' ' + name.replace('\n','') + ' \' from file ' + file + ' already exists')
-                        else:
-                             s_names.add(name)
-                # save nb seq
-                d_nb_seq[file] = nb_seq
+        d_prot_names  = dict()
+        duplicates = list()
+        for file in tmp_l:
+            # save file to list
+            l_files.append( (file, os.path.getsize(directory / file)) )
+            nb_seq = 0
+            # check names
+            content = open(directory / file, "r")
+            for line in content:
+                if line.startswith('>'):
+                    nb_seq += 1
+                    name = line.split(' ')[0]
+                    if name in d_prot_names:
+                        # save duplicate info
+                        name2 = name.strip('\n')
+                        duplicates.append(name2.replace('>','') + '	' + d_prot_names[name] + '	' + file) 
+                    else:
+                        d_prot_names[name] = file
+            # save nb seq
+            d_nb_seq[file] = nb_seq
     
     # sort the list by (reverse) size
     l_files.sort(key=lambda x: x[1], reverse=True)
@@ -121,8 +127,20 @@ def pre_checking(directory, ext):
     if len(l_files) == 0:
         sys.exit('\n            ERROR STEP 1: there is no input fasta file (*' + ext + ') in this directory.\n\n')
     
+    # if duplicate names, print warning message and save duplicate names to file
+    if duplicates:
+        print('    ----------------------------------------------------------------------------------\n    | WARNING: some protein names are present multiple times (they should be unique) |\n    |          see file duplicate_names.txt in dir_step1                             |\n    ----------------------------------------------------------------------------------')
+        # create log file
+        dupli_file = open(out_dir / 'duplicate_names.txt','w+')
+        dupli_file.write('#protein_name	file1	file2\n') 
+        for s in duplicates:
+            dupli_file.write(s + '\n')
+        
     # convert to dictionary
-    d_files = {str(i):k for i,k in enumerate(l_files)}
+    d_files = dict()
+    for i,k in enumerate(l_files):
+        new_name = str(i)
+        d_files[new_name] = k
 
     # print log
     print(' ' + str(len(l_files)) + ' input files')
@@ -142,14 +160,6 @@ def process_file(filename):
     all_names, all_seq = create_dict_seq(filename, directory, counter)
     initial = len(all_names)
     
-    ## remove short seq
-    to_remove = list()
-    for name, seq in all_seq.items(): 
-        if len(seq) < min_seq:
-            to_remove.append(name)
-    for name in to_remove:
-        del all_names[name], all_seq[name]
-    
     ## extract kmers
     kmer_2_id = dict()
     all_kmers = collections.defaultdict(list)
@@ -157,10 +167,8 @@ def process_file(filename):
     for name, seq in all_seq.items(): 
         # extract k-mers 
         for i in range(len(seq) - length_kmer + 1):
-        #for i in range(round((len(seq) - length_kmer + 1)/2)):
-            #j = i * 2
-            #kmer = seq[j:j + length_kmer]
-            kmer = seq[i:i + length_kmer]
+            # extract kmer
+            kmer = seq[i : i + length_kmer]
             # check number of distinct aa
             distinct_aa = set(kmer)
             # only consider kmer with at least min_aa distinct aa, and no 'X' amd no '*'
@@ -202,9 +210,12 @@ def process_file(filename):
         if name not in all_nodes:
             list_cc.append([name])
     
+    # build name output file (index '3' -> 0003.fas)
+    output_name = str(index) + '.fas'
+    
     # save output
     all_combined = dict()
-    out_file = open('./dir_step1/' + str(index) + '.fas', 'w+')
+    out_file = open(out_dir / output_name, 'w+')
     for l in list_cc:
         if len(l) == 1:
             name = l[0]
@@ -224,14 +235,14 @@ def process_file(filename):
             all_combined[ref] = tuple(l)
     out_file.close()
     
-    return [str(index), filename, str(initial), str(len(to_remove)), str(len(list_cc)), all_names, all_combined]
+    return [str(index), filename, str(initial), str(len(list_cc)), all_names, all_combined]
 
 # --------------------- #
 
 def create_dict_seq(file, dir, c):
     d_name  = dict()
     d_seq   = dict()
-    with open(dir + file) as fasta_content:
+    with open(dir / file) as fasta_content:
         for name_seq, seq in utils.read_fasta(fasta_content):
             d_name[c] = name_seq.split(' ')[0]
             d_seq[c]  = seq

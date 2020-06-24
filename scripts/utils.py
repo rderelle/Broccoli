@@ -1,13 +1,20 @@
 import os
 import pickle
 import gc
+import shutil
+from pathlib import Path
 
 
 ''' to create dir (and remove previous version if exists) ''' 
 def create_out_dir(dir):
-    if os.path.isdir(dir):
-        os.system('rm -R ' + dir)
-    os.mkdir(dir)
+    p = Path(dir)
+    if p.exists():
+        try:
+            shutil.rmtree(p)
+        except:
+            os.system('rm -R ' + dir)
+    p.mkdir()
+    return p
 
 
 ''' to parse FASTA files '''
@@ -30,9 +37,9 @@ def save_pickle(file_name, d):
 
 
 ''' load pickle dict from disk '''
-def get_pickle(file_name):
+def get_pickle(file_path):
     d = dict()
-    with open(file_name, 'rb') as content:
+    with open(file_path, 'rb') as content:
         gc.disable()  # disable garbage collector
         d.update(pickle.load(content))
         gc.enable()   # enable garbage collector again
@@ -41,13 +48,16 @@ def get_pickle(file_name):
 
 ''' load multiple pickle dict from disk (input is directory and a string matching the end of the file names) '''
 def get_multi_pickle(dir_, str_):
+    # get list of files
+    p = dir_.glob('*')
+    tmp_l = [x for x in p if x.is_file() and str_ in str(x.parts[-1])]
+    # load pickle files
     d = dict()
-    for file in os.listdir(dir_):
-        if file.endswith(str_):
-            with open(dir_ + file, 'rb') as content:
-                gc.disable()  # disable garbage collector
-                d.update(pickle.load(content))
-                gc.enable()   # enable garbage collector again
+    for file_path in tmp_l:
+        with open(file_path, 'rb') as content:
+            gc.disable()  # disable garbage collector
+            d.update(pickle.load(content))
+            gc.enable()   # enable garbage collector again
     return d
 
 

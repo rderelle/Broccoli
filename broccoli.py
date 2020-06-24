@@ -41,47 +41,38 @@ def parse_args():
     common.add_argument('-h','-help',     action="help", help="show this help message and exit")
     
     step1 = parser.add_argument_group(' STEP 1  kmer clustering')
-    step1.add_argument('-dir',            help='name of the directory containing the proteome files [required]', metavar='')
-    step1.add_argument('-ext',            help='extension of proteome files (default = \'.fasta\')', metavar='', type=str, default='.fasta')    
-    step1.add_argument('-min_length',     help='minimum length of sequences [default = 10]', metavar='', type=int, default=10)
-    step1.add_argument('-kmer_size',      help='length of kmers [default = 100]', metavar='', type=int, default=100)
-    step1.add_argument('-kmer_min_aa',    help='minimum nb of different aa a kmer should have [default = 15]', metavar='', type=int, default=15)
+    step1.add_argument('-dir',              help='name of the directory containing the proteome files [required]', metavar='')
+    step1.add_argument('-ext',              help='extension of proteome files (default = \'.fasta\')', metavar='', type=str, default='.fasta')    
+    step1.add_argument('-kmer_size',        help='length of kmers [default = 100]', metavar='', type=int, default=100)
+    step1.add_argument('-kmer_min_aa',      help='minimum nb of different aa a kmer should have [default = 15]', metavar='', type=int, default=15)
     
     step2 = parser.add_argument_group(' STEP 2  phylomes')
-    step2.add_argument('-path_diamond',   help='path of DIAMOND with filename [default = \'diamond\']', metavar='', type=str, default='diamond')    
-    step2.add_argument('-path_fasttree',  help='path of FastTree with filename [default = \'fasttree\']', metavar='', type=str, default='fasttree')    
-    step2.add_argument('-e_value',        help='e-value for similarity search [default = 0.001]', metavar='', type=float, default=0.001)
-    step2.add_argument('-nb_hits',        help='maximum nb of hits per species [default = 6]', metavar='', type=int, default=6)
-    step2.add_argument('-max_gap',        help='maximum fraction of gap per position [default = 0.7]', metavar='', type=float, default=0.7)
+    step2.add_argument('-path_diamond',     help='path of DIAMOND with filename [default = \'diamond\']', metavar='', type=str, default='diamond')    
+    step2.add_argument('-path_fasttree',    help='path of FastTree with filename [default = \'fasttree\']', metavar='', type=str, default='fasttree')    
+    step2.add_argument('-e_value',          help='e-value for similarity search [default = 0.001]', metavar='', type=float, default=0.001)
+    step2.add_argument('-nb_hits',          help='max nb of hits per species [default = 6]', metavar='', type=int, default=6)
+    step2.add_argument('-max_gap',          help='max fraction of gap per position [default = 0.7]', metavar='', type=float, default=0.7)
+    step2.add_argument('-phylogenies',      help='phylogenetic method: \'nj\' (neighbor joining), \'me\' (minimum evolution) or \'ml\' (maximum likelihood) [default = \'nj\']', metavar='', choices=['nj','me','ml'], default= 'nj')
     
     step3 = parser.add_argument_group(' STEP 3  network analysis')
-    step3.add_argument('-min_nb_hits',    help='minimum number of hits belonging to the OG [default = 2]', metavar='', type=int, default=2)
-    step3.add_argument('-fusion_shared',  help='minimum fraction of connected nodes in each OG [default = 0.5]', metavar='', type=float, default=0.5)
-    step3.add_argument('-fusion_nb_sp',   help='minimum nb of species in OGs involved in gene-fusions [default = 2]', metavar='', type=int, default=2)
-    step3.add_argument('-fusion_overlap', help='maximum overlap between OGs in amino-acids [default = 10]', metavar='', type=int, default=10)
+    step3.add_argument('-sp_overlap',       help='max ratio of overlapping species in phylogenetic trees [default = 0.5]', metavar='', type=float, default=0.5)
+    step3.add_argument('-min_weight',       help='min weight for an edge to be kept in the orthology network [default = 0.1]', metavar='', type=float, default=0.1)
+    step3.add_argument('-min_nb_hits',      help='spurious hits: min number of hits belonging to the OG [default = 2]', metavar='', type=int, default=2)
+    step3.add_argument('-chimeric_shared',  help='chimeric prot: min fraction of connected nodes in each OG [default = 0.5]', metavar='', type=float, default=0.5)
+    step3.add_argument('-chimeric_nb_sp',   help='chimeric prot: min nb of species in OGs involved in gene-fusions [default = 3]', metavar='', type=int, default=3)
 
     step4 = parser.add_argument_group(' STEP 4  orthologous pairs')
-    step4.add_argument('-ratio_ortho',    help='limit ratio ortho/total [default = 0.5]', metavar='', type=float, default=0.5)
-    step4.add_argument('-not_same_sp',    help='ignore ortho relationships between proteins of the same species (QfO benchmark)', action="store_true")
+    step4.add_argument('-ratio_ortho',      help='limit ratio ortho/total [default = 0.5]', metavar='', type=float, default=0.5)
+    step4.add_argument('-not_same_sp',      help='ignore ortho relationships between proteins of the same species (QfO benchmark)', action="store_true")
     
     args = parser.parse_args()
     
-    # clean directory name
-    if args.dir:
-        args.dir = clean_dir_name(args.dir)
-
     return args.steps, args.threads, \
-    args.dir, args.ext, args.min_length, args.kmer_size, args.kmer_min_aa, \
-    args.e_value, args.nb_hits, args.path_diamond, args.path_fasttree, args.max_gap, \
-    args.min_nb_hits, args.fusion_shared, args.fusion_overlap, args.fusion_nb_sp, \
+    args.dir, args.ext, args.kmer_size, args.kmer_min_aa, \
+    args.e_value, args.nb_hits, args.path_diamond, args.path_fasttree, args.max_gap, args.phylogenies, \
+    args.sp_overlap, args.min_weight, args.min_nb_hits, args.chimeric_shared, args.chimeric_nb_sp, \
     args.ratio_ortho, args.not_same_sp
 
-
-
-def clean_dir_name(d):
-    if d[-1] != '/':
-        d = d + '/'
-    return d
 
 
 def check_python_version():
@@ -126,13 +117,13 @@ if __name__ == "__main__":
     
     ## get all arguments
     pre_steps, nb_threads, \
-    directory, extension, min_seq, length_kmer, min_aa, \
-    evalue, max_per_species, path_diamond, path_fasttree, trim_thres, \
-    min_nb_hits, limit_shared, limit_overlap, limit_nb_sp, \
+    directory, extension, length_kmer, min_aa, \
+    evalue, max_per_species, path_diamond, path_fasttree, trim_thres, phylo_method, \
+    sp_overlap, min_weight, min_nb_hits, chimeric_shared, chimeric_nb_sp, \
     limit_ortho, not_same_sp = parse_args()
 
 
-    print('\n            Broccoli v1.0\n')
+    print('\n            Broccoli v1.1\n')
 
 
     ## check python version
@@ -151,13 +142,13 @@ if __name__ == "__main__":
         
     ## execute the steps
     if 1 in steps:
-        broccoli_step1.step1_kmer_clustering(directory, extension, min_seq, length_kmer, min_aa, nb_threads)
+        broccoli_step1.step1_kmer_clustering(directory, extension, length_kmer, min_aa, nb_threads)
 
     if 2 in steps:
-        broccoli_step2.step2_phylomes(evalue, max_per_species, path_diamond, path_fasttree, trim_thres, nb_threads)
+        broccoli_step2.step2_phylomes(evalue, max_per_species, path_diamond, path_fasttree, trim_thres, phylo_method, nb_threads)
     
     if 3 in steps:
-        broccoli_step3.step3_orthology_network(min_nb_hits, limit_shared, limit_overlap, limit_nb_sp, nb_threads)
+        broccoli_step3.step3_orthology_network(sp_overlap, min_weight, min_nb_hits, chimeric_shared, chimeric_nb_sp, nb_threads)
     
     if 4 in steps:
         broccoli_step4.step4_orthologous_pairs(limit_ortho, not_same_sp, nb_threads)
