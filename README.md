@@ -6,7 +6,7 @@
 
 ## Overview
 
-Broccoli, a user-friendly pipeline designed to infer with high precision orthologous groups and pairs of proteins using a phylogeny-based approach. Briefly, Broccoli performs ultra-fast phylogenetic analyses on most proteins and builds a network of orthologous relationships. Orthologous groups are then identified from the network using a parameter-free machine learning algorithm (label propagation). Broccoli is also able to detect chimeric proteins resulting from gene-fusion events and to assign these proteins to the corresponding orthologous groups. 
+Broccoli is designed to infer with high precision orthologous groups and pairs of proteins using a mixed phylogeny-network approach. Briefly, Broccoli performs ultra- fast phylogenetic analyses on most proteins and builds a network of orthologous relationships. Orthologous groups are then identified from the network using a parameter-free machine learning algorithm (label propagation). Broccoli also detects chimeric proteins resulting from gene-fusion events and assigns these proteins to the corresponding orthologous groups.
 
 __Reference:__ <a href="https://doi.org/10.1101/2019.12.13.875831">Broccoli: combining phylogenetic and network analyses for orthology assignment</a>
 
@@ -16,7 +16,7 @@ __Reference:__ <a href="https://doi.org/10.1101/2019.12.13.875831">Broccoli: com
 
 
 ## Requirements
-To run Broccoli, you need (see the [**manual**](Manual_broccoli_v1.0.pdf) for installation advices):
+To run Broccoli, you need (see the [**manual**](manual_Broccoli_v1.2.pdf) for installation advices):
 - a Unix system (MacOS or Linux)
 - Python version 3.6 or above
 - <a href="https://github.com/etetoolkit/ete">ete3 library</a>
@@ -25,7 +25,7 @@ To run Broccoli, you need (see the [**manual**](Manual_broccoli_v1.0.pdf) for in
 
 
 ## Running Broccoli
-All parameters and options are available using the `-help` argument (see also the [**manual**](Manual_broccoli_v1.0.pdf) for more details):
+All parameters and options are available using the `-help` argument (see also the [**manual**](manual_Broccoli_v1.2.pdf) for more details):
 ```
 python broccoli.py -help
 ```
@@ -34,11 +34,6 @@ To test Broccoli with the small example dataset present in the directory `exampl
 python broccoli.py -dir example_dataset
 ```
 Broccoli will store the temporary and output files in 4 directories named `dir_step1` to `dir_step4` (one for each step) located in the current directory.
-In this test run, Broccoli should identify 226 orthologous groups and 874 orthologous pairs.
-
-
-## Current version: 1.1
-New: alignements are built from CIGAR strings in Diamond outputs (the version requires Diamond v0.9.30+)
 
 
 ## Licence
