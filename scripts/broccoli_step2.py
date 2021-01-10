@@ -380,8 +380,8 @@ def process_file(file):
     a3 = a2.split('\n')
     c = -1
     for line in a3:
-        # case the line is in the form 'Ignored unknown character ...'
-        if line.startswith('Ign'):
+        # case the line is in the form 'Ignored unknown character ...' or 'WARNING! 100.0% NUCLEOTIDE CHARACTERS'
+        if line.startswith('Ign') or line.startswith('WARNING'):
             pass
         else:
             c += 1
