@@ -375,33 +375,38 @@ def process_file(file):
     ## perform phylogenetic analyses and root trees
     all_trees  = dict()
     nb_pbm_tree = 0
-    a = subprocess.check_output(path_fasttree + ' -quiet -nosupport -fastest -bionj -pseudo ' + insert + ' -n ' + str(nb_alis) + ' ' + str(Path(out_dir / name_ali_file)) + ' 2>&1', shell=True)
-    a2 = a.strip().decode("utf-8")
-    a3 = a2.split('\n')
-    c = -1
-    for line in a3:
-        # case the line is in the form 'Ignored unknown character ...' or 'WARNING! 100.0% NUCLEOTIDE CHARACTERS'
-        if line.startswith('Ign') or line.startswith('WARNING'):
-            pass
-        else:
-            c += 1
-            if not line.startswith('('):
-                nb_pbm_tree += 1            
-                # security
-                if nb_pbm_tree > 100:
-                    sys.exit("\n            ERROR STEP 2: too many errors in phylogenetic analyses -> stopped\n\n")
+    
+    # case there are phylogenetic analyses to perform (FastTree crashes if empty alignment)
+    if nb_phylo > 0:
+        a = subprocess.check_output(path_fasttree + ' -quiet -nosupport -fastest -bionj -pseudo ' + insert + ' -n ' + str(nb_alis) + ' ' + str(Path(out_dir / name_ali_file)) + ' 2>&1', shell=True)
+        a2 = a.strip().decode("utf-8")
+        a3 = a2.split('\n')
+        c = -1
+        for line in a3:
+            # case the line is in the form 'Ignored unknown character ...' or 'WARNING! 100.0% NUCLEOTIDE CHARACTERS'
+            if line.startswith('Ign') or line.startswith('WARNING'):
+                pass
             else:
-                # import tree in ete3 and root it
-                ete_tree = PhyloTree(line)
-                mid = ete_tree.get_midpoint_outgroup()
-                try:
-                    ete_tree.set_outgroup(mid)
-                except:
-                    pass
-                # get reference protein name
-                prot = all_ref_prot[c]
-                # save rooted tree
-                all_trees[prot] = ete_tree.write()
+                c += 1
+                if not line.startswith('('):
+                    nb_pbm_tree += 1            
+                    # security
+                    if nb_pbm_tree > 100:
+                        sys.exit("\n            ERROR STEP 2: too many errors in phylogenetic analyses -> stopped\n\n")
+                else:
+                    # import tree in ete3 and root it
+                    ete_tree = PhyloTree(line)
+                    mid = ete_tree.get_midpoint_outgroup()
+                    try:
+                        ete_tree.set_outgroup(mid)
+                    except:
+                        pass
+                    # get reference protein name
+                    prot = all_ref_prot[c]
+                    # save rooted tree
+                    all_trees[prot] = ete_tree.write()
+    else:
+        pass
     
     ## save trees to file
     tree_file = index + '_trees.pic'
