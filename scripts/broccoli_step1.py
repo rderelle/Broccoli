@@ -29,7 +29,7 @@ from scripts import utils
 
 def step1_kmer_clustering(dir, ext, lk, ma, nt):
    
-    # convert the parameters to global variables (horrible hack)
+    # convert the parameters to global variables
     global directory, extension, length_kmer, min_aa, nb_threads
     directory, extension, length_kmer, min_aa, nb_threads = Path(dir), ext, lk, ma, nt
 
@@ -50,8 +50,10 @@ def step1_kmer_clustering(dir, ext, lk, ma, nt):
     
 	## analyse each fasta file (multithreading)
     print ('\n # kmer clustering\n ' + str(len(list_files)) + ' proteomes on ' + str(nb_threads) + ' threads')
+    files_start = zip(list_files, list_start, list(range(len(list_files))), itertools.repeat(directory), 
+                  itertools.repeat(length_kmer), itertools.repeat(min_aa), itertools.repeat(out_dir))
     pool = ThreadPool(nb_threads) 
-    tmp_res = pool.map_async(process_file, list_files, chunksize=1)
+    tmp_res = pool.starmap_async(process_file, files_start, chunksize=1)
     results_2 = tmp_res.get()
     pool.close() 
     pool.join()
@@ -150,12 +152,7 @@ def pre_checking(directory, ext):
 
 # --------------------- #
 
-def process_file(filename):
-    
-    ## get back info
-    index = list_files.index(filename)
-    counter = list_start[index]
-    
+def process_file(filename, counter, index, directory, length_kmer, min_aa, out_dir):
     ## extract fasta sequences with new IDs
     all_names, all_seq = create_dict_seq(filename, directory, counter)
     initial = len(all_names)
