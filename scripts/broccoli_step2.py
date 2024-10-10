@@ -26,6 +26,7 @@ import gzip
 import math
 import re
 import shutil
+import itertools
 from multiprocessing import Pool as ThreadPool 
 from pathlib import Path
 from scripts import utils
@@ -133,12 +134,13 @@ def create_dict_seq(l_files):
 
 def multithread_databases(l_file, n_threads):
     # start multithreading
+    files_start = zip(l_file, itertools.repeat(db_dir), itertools.repeat(path_diamond))    
     pool = ThreadPool(n_threads) 
-    tmp_res = pool.map_async(prepare_databases, l_file, chunksize=1)
+    tmp_res = pool.starmap_async(prepare_databases, files_start, chunksize=1)
     pool.close() 
     pool.join()    
 
-def prepare_databases(file):
+def prepare_databases(file, db_dir, path_diamond):
     input_file = str(Path('dir_step1') / file)
     database_path = str(db_dir / file.replace('.fas','.db'))
     subprocess.check_output(path_diamond + ' makedb --in ' + input_file + ' --db ' + database_path + ' 2>&1', shell=True)
@@ -146,8 +148,11 @@ def prepare_databases(file):
 
 def multithread_process_file(l_file, n_threads):
     # start multithreading
+    files_start = zip(l_file, itertools.repeat(out_dir), itertools.repeat(l_file), itertools.repeat(path_diamond), itertools.repeat(db_dir),
+            itertools.repeat(max_per_species), itertools.repeat(evalue), itertools.repeat(all_species), itertools.repeat(name_2_sp_phylip_seq),
+            itertools.repeat(trim_thres), itertools.repeat(phylo_method), itertools.repeat(path_fasttree))
     pool = ThreadPool(n_threads) 
-    tmp_res = pool.map_async(process_file, l_file, chunksize=1)
+    tmp_res = pool.starmap_async(process_file, files_start, chunksize=1)
     results_2 = tmp_res.get()
     pool.close() 
     pool.join()
@@ -207,7 +212,7 @@ def process_location(qu_start, qu_end, min_start, max_end):
     return min_start, max_end
 
 
-def get_positions(ref_name, hits, t):
+def get_positions(ref_name, hits, trim_thres):
     # count number of '-' per position
     tmp_ = [0] * len(hits[ref_name])
     for seq in hits.values():
@@ -223,7 +228,8 @@ def get_positions(ref_name, hits, t):
     return good
 
 
-def process_file(file):       
+def process_file(file, out_dir, list_files, path_diamond, db_dir, max_per_species, evalue, all_species, name_2_sp_phylip_seq, trim_thres,
+                 phylo_method, path_fasttree):       
     ## extract index
     index = file.split('.')[0]
     
