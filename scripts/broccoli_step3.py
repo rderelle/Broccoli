@@ -79,7 +79,7 @@ def step3_orthology_network(rov, mw, mnh, lm, nbsp, nt):
     
     ## load prot_name 2 species dict (integer version)
     prot_2_sp = utils.get_pickle(Path('dir_step2') / 'prot_int_2_species.pic')
-      
+    
     print('\n ## network analysis')
     ## build network
     global all_nodes, all_edges 
@@ -157,8 +157,9 @@ def extract_ortho(l_trees):
     
     # extract ortho from tree files
     print(' extract ortho from trees')    
+    files_start = zip(l_trees, itertools.repeat(path_tmp), itertools.repeat(path_tmp_ortho), itertools.repeat(prot_2_sp), itertools.repeat(sp_overlap))    
     pool = Pool(nb_threads) 
-    tmp_res = pool.map_async(extract_ortho_from_trees, l_trees, chunksize=1)
+    tmp_res = pool.starmap_async(extract_ortho_from_trees, files_start, chunksize=1)
     pool.close() 
     pool.join()            
     
@@ -187,8 +188,7 @@ def extract_ortho(l_trees):
     utils.save_pickle(out_dir / 's_filter.pic', s_filter)
     
 
-def extract_ortho_from_trees(filename):
-
+def extract_ortho_from_trees(filename, path_tmp, path_tmp_ortho, prot_2_sp, sp_overlap):
     # prepare output variables
     l_ortho = list()
     l_ortho_para = list()
@@ -205,7 +205,7 @@ def extract_ortho_from_trees(filename):
                                    
         # get all leaves from last interesting nodes      
         ref_node = tree.search_nodes(name = ref_leaf)[0]
-        ortho = custom_species_overlap(ref_node)
+        ortho = custom_species_overlap(ref_node, prot_2_sp, sp_overlap)
         
         # add ref_leaf to ortho in case no good node selected
         if len(ortho) == 0:
@@ -227,14 +227,14 @@ def extract_ortho_from_trees(filename):
 
     # save ortho @ para
     utils.save_pickle(path_tmp / filename, l_ortho_para)
-
+    
     # save ortho
     utils.save_pickle(path_tmp_ortho / filename, l_ortho)
     
     return [0,0]
 
 
-def custom_species_overlap(node):
+def custom_species_overlap(node, prot_2_sp, sp_overlap):
     '''
     this function is a modified version of the ETE function 'get_evol_events_from_leaf'
     https://github.com/etetoolkit/ete/tree/master/ete3/phylo 
@@ -279,7 +279,6 @@ def custom_species_overlap(node):
 
 
 def extract_para(l_trees):
-
     global set_filter
     set_filter = pickle.load(open(out_dir / 's_filter.pic', 'rb'))
     
@@ -288,8 +287,9 @@ def extract_para(l_trees):
     
     # extract para from tree files
     print(' extract para from trees')   
+    files_start = zip(l_trees, itertools.repeat(set_filter), itertools.repeat(path_tmp_para), itertools.repeat(path_tmp))    
     pool = Pool(nb_threads) 
-    tmp_res = pool.map_async(extract_para_from_trees, l_trees, chunksize=1)
+    tmp_res = pool.starmap_async(extract_para_from_trees, files_start, chunksize=1)
     pool.close() 
     pool.join()
 
@@ -314,7 +314,7 @@ def extract_para(l_trees):
     shutil.rmtree(path_tmp)
 
 
-def extract_para_from_trees(filename):
+def extract_para_from_trees(filename, set_filter, path_tmp_para, path_tmp):
     
     # prepare list
     out_para = list()
@@ -440,8 +440,9 @@ def multithread_lcc(d_nodes, n_threads):
         
     # start multithreading
     print(' compute lcc for each node')
+    files_start = zip(new_list_of_lists, itertools.repeat(all_edges), itertools.repeat(limit_degree))    
     pool = Pool(nb_thr) 
-    tmp_res = pool.map_async(calculate_lcc, new_list_of_lists, chunksize=1)
+    tmp_res = pool.starmap_async(calculate_lcc, files_start, chunksize=1)
     results_2 = tmp_res.get()
     pool.close() 
     pool.join()   
@@ -464,7 +465,7 @@ def get_limit_lcc(d_species):
     return ld, nb_max
 
 
-def calculate_lcc(l):
+def calculate_lcc(l, all_edges, limit_degree):
     out = list()
     for k in l:
         degree = len(all_edges[k])
@@ -749,7 +750,7 @@ def save_outputs(l_com, d_chimeric, d_species):
     ## load original and combined names
     original_name = utils.get_pickle(Path('dir_step1') / 'original_names.pic')
     combined_prot = utils.get_pickle(Path('dir_step1') / 'combined_names.pic')
-            
+           
     # create vector nb_species as index and nb_OG as value
     vector_sp = [0] * (len(d_species) + 1)
     
@@ -760,6 +761,7 @@ def save_outputs(l_com, d_chimeric, d_species):
     table_og = dict()
     
     ## save the lists of OGs and get fusion info and get OG info
+    classified = set()
     d_OG = collections.defaultdict(list)
     c = 0
     OGs_in_network = dict()
@@ -795,10 +797,12 @@ def save_outputs(l_com, d_chimeric, d_species):
                     #table_og[name_OG][sp] += len(combined_prot[k])
                     for k2 in combined_prot[k]:                    
                         table_og[name_OG][sp].append(original_name[k2])
+                        classified.add(original_name[k2])
                 else:
                     nb_per_sp[sp] += 1
                     #table_og[name_OG][sp] += 1
                     table_og[name_OG][sp].append(original_name[k])
+                    classified.add(original_name[k])
             # check if gene fusion in OG -> save name OG for each gene-fusion
             for k in l:
                 if k in d_chimeric:
@@ -822,7 +826,15 @@ def save_outputs(l_com, d_chimeric, d_species):
     file_fusions.write('#species_file	protein_name	nb_OG_fused	list_fused_OGs\n')
     for k,l in d_chimeric.items():
         file_fusions.write(d_species[str(prot_2_sp[k])] + '	' + original_name[k] + '	' + str(len(l))  + '	' + ' '.join(l) + '\n')
-        
+    
+    ## save unclassified protein names
+    s_all = {x for x in original_name.values()}
+    d_inverse = {y:x for x,y in original_name.items()}
+    unclassified = s_all.difference(classified);
+    file_unclassified = open(out_dir / 'unclassified_proteins.txt', 'w+')
+    for name in unclassified:
+        file_unclassified.write(name + '\n')
+    
     ## save statistics for each OG
     file_stats_each_OG = open(out_dir / 'statistics_per_OG.txt', 'w+')
     file_stats_each_OG.write('#OG_name	nb_species	nb_reduced_prot	nb_all_prot	clustering_coefficient\n')
