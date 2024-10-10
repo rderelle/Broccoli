@@ -108,8 +108,9 @@ def load_all_data(f_blast, f_tree):
 def multithread_process_OG(l_ogs, n_threads, original, combined, not_same_sp):
     
     # start multithreading
+    files_start = zip(l_ogs, itertools.repeat(all_trees), itertools.repeat(all_no_tree), itertools.repeat(limit_ortho), itertools.repeat(prot_2_sp))
     pool = ThreadPool(n_threads) 
-    tmp_res = pool.map_async(process_OG, l_ogs, chunksize=1)
+    tmp_res = pool.starmap_async(process_OG, files_start, chunksize=1)
     results_2 = tmp_res.get()
     pool.close() 
     pool.join() 
@@ -142,7 +143,7 @@ def multithread_process_OG(l_ogs, n_threads, original, combined, not_same_sp):
                             outfile.write(original[int(k1)] + '	' + original[int(k2)] + '\n')
 
 
-def process_OG(l_OG):
+def process_OG(l_OG, all_trees, all_no_tree, limit_ortho, prot_2_sp):
     
     # convert to set and protein names to string format (to match with pickle dict)
     s_OG = set(str(x) for x in l_OG)
