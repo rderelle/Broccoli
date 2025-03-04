@@ -428,6 +428,7 @@ def build_network():
 
 def multithread_lcc(d_nodes, n_threads):
 
+    global limit_degree, limit_nb_max
     # define number of threads (limit to 3 threads to avoid high memory consumption)
     if n_threads > 3:
         nb_thr = 3
@@ -440,7 +441,7 @@ def multithread_lcc(d_nodes, n_threads):
         
     # start multithreading
     print(' compute lcc for each node')
-    files_start = zip(new_list_of_lists, itertools.repeat(all_edges), itertools.repeat(limit_degree))    
+    files_start = zip(new_list_of_lists, itertools.repeat(all_edges), itertools.repeat(limit_degree), itertools.repeat(limit_nb_max))
     pool = Pool(nb_thr) 
     tmp_res = pool.starmap_async(calculate_lcc, files_start, chunksize=1)
     results_2 = tmp_res.get()
@@ -465,7 +466,7 @@ def get_limit_lcc(d_species):
     return ld, nb_max
 
 
-def calculate_lcc(l, all_edges, limit_degree):
+def calculate_lcc(l, all_edges, limit_degree, limit_nb_max):
     out = list()
     for k in l:
         degree = len(all_edges[k])
