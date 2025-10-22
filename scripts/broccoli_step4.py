@@ -31,6 +31,20 @@ except:
     sys.exit("\n            ERROR: the ete3 library is not installed\n\n")
 
 
+# --- per-worker state for multiprocessing (cross-platform safe) ---
+_all_trees = None
+_all_no_tree = None
+_limit_ortho = None
+_prot_2_sp = None
+
+def _init_worker(all_trees, all_no_tree, limit_ortho, prot_2_sp):
+    # Called once in each worker process to set large read-only state
+    global _all_trees, _all_no_tree, _limit_ortho, _prot_2_sp
+    _all_trees = all_trees
+    _all_no_tree = all_no_tree
+    _limit_ortho = limit_ortho
+    _prot_2_sp = prot_2_sp
+
 
 def step4_orthologous_pairs(lo, nsp, nt):
 
@@ -106,15 +120,16 @@ def load_all_data(f_blast, f_tree):
 
 
 def multithread_process_OG(l_ogs, n_threads, original, combined, not_same_sp):
-    
-    # start multithreading
-    files_start = zip(l_ogs, itertools.repeat(all_trees), itertools.repeat(all_no_tree), itertools.repeat(limit_ortho), itertools.repeat(prot_2_sp))
-    pool = ThreadPool(n_threads) 
-    tmp_res = pool.starmap_async(process_OG, files_start, chunksize=1)
-    results_2 = tmp_res.get()
-    pool.close() 
-    pool.join() 
-    
+    # Create the pool and set large objects once per worker (no giant per-task pickles)
+    pool = ThreadPool(
+        n_threads,
+        initializer=_init_worker,
+        initargs=(all_trees, all_no_tree, limit_ortho, prot_2_sp)
+    )
+    results_2 = pool.map(process_OG, l_ogs, chunksize=1)
+    pool.close()
+    pool.join()
+
     # save ortho relationships in file
     outfile = open(out_dir / 'orthologous_pairs.txt','w+')
     for s in results_2:
@@ -143,8 +158,13 @@ def multithread_process_OG(l_ogs, n_threads, original, combined, not_same_sp):
                             outfile.write(original[int(k1)] + '	' + original[int(k2)] + '\n')
 
 
-def process_OG(l_OG, all_trees, all_no_tree, limit_ortho, prot_2_sp):
-    
+def process_OG(l_OG):
+    # Read large state from per-worker globals (set by _init_worker)
+    all_trees = _all_trees
+    all_no_tree = _all_no_tree
+    limit_ortho = _limit_ortho
+    prot_2_sp = _prot_2_sp
+        
     # convert to set and protein names to string format (to match with pickle dict)
     s_OG = set(str(x) for x in l_OG)
     # prepare dict of ortho and para
@@ -241,5 +261,3 @@ def process_OG(l_OG, all_trees, all_no_tree, limit_ortho, prot_2_sp):
                     final_ortho += ' ' + prot1 + '-' + prot2
     
     return final_ortho.strip()
-
-
