@@ -24,7 +24,9 @@ import operator
 import itertools
 import pickle
 import statistics
+import multiprocessing
 from multiprocessing import Pool 
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
 import shutil
 import gc
@@ -441,8 +443,15 @@ def multithread_lcc(d_nodes, n_threads):
         
     # start multithreading
     print(' compute lcc for each node')
-    files_start = zip(new_list_of_lists, itertools.repeat(all_edges), itertools.repeat(limit_degree), itertools.repeat(limit_nb_max))
-    pool = Pool(nb_thr) 
+    files_start = zip(new_list_of_lists, itertools.repeat(limit_degree), itertools.repeat(limit_nb_max))
+    try:
+        ctx = multiprocessing.get_context("fork")
+    except ValueError:
+        ctx = None
+    if ctx is not None:
+        pool = ctx.Pool(nb_thr)
+    else:
+        pool = ThreadPool(nb_thr)
     tmp_res = pool.starmap_async(calculate_lcc, files_start, chunksize=1)
     results_2 = tmp_res.get()
     pool.close() 
@@ -466,7 +475,7 @@ def get_limit_lcc(d_species):
     return ld, nb_max
 
 
-def calculate_lcc(l, all_edges, limit_degree, limit_nb_max):
+def calculate_lcc(l, limit_degree, limit_nb_max):
     out = list()
     for k in l:
         degree = len(all_edges[k])
@@ -871,4 +880,3 @@ def save_outputs(l_com, d_chimeric, d_species):
     file_stats_OGs_sp.write('#nb_species	nb_OGs\n')
     for i,v in enumerate(vector_sp):
         file_stats_OGs_sp.write(str(i) + '	' + str(v) + '\n')
-
