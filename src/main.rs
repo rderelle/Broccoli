@@ -16,8 +16,8 @@ use std::process::{Command, Stdio};
 
 pub type R<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-const HELP: &str = "
-            Broccoli v2.0
+const HELP: &str = concat!("
+            Broccoli v", env!("CARGO_PKG_VERSION"), "
 
  general options:
   -steps            steps to be performed, comma separated [default = 1,2,3,4]
@@ -49,7 +49,7 @@ const HELP: &str = "
  STEP 4  orthologous pairs:
   -ratio_ortho      limit ratio ortho/total [default = 0.5]
   -not_same_sp      ignore ortho relationships between proteins of the same species
-";
+");
 
 const DEFAULTS: &[(&str, &str)] = &[
     ("steps", "1,2,3,4"), ("threads", "1"),
@@ -170,7 +170,7 @@ fn main() {
 
 fn run() -> R<()> {
     let o = Opts::parse()?;
-    println!("\n            Broccoli v2.0\n");
+    println!("\n            Broccoli v{}\n", env!("CARGO_PKG_VERSION"));
     let start = std::time::Instant::now();
 
     let mut steps: Vec<u32> = o.str("steps").split(',').map(|s| s.trim().parse())

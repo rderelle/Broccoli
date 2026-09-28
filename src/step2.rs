@@ -88,7 +88,9 @@ pub fn run(o: &Opts) -> R<()> {
         let workers: Vec<_> = (0..threads).map(|_| {
             let (rx, ctx, failed) = (rx.clone(), &ctx, &failed);
             s.spawn(move || -> R<()> {
-                while let Ok(b) = { let r = rx.lock().unwrap().recv(); r } {
+                loop {
+                    // the lock is released at the end of this statement, not held while processing
+                    let Ok(b) = rx.lock().unwrap().recv() else { break };
                     if failed.load(Relaxed) { break }
                     if let Err(e) = process(b, ctx) { failed.store(true, Relaxed); return Err(e) }
                 }
@@ -169,8 +171,8 @@ impl Search<'_> {
             run_cmd(Command::new(self.o.str("path_diamond")).args(["makedb", "--quiet", "--in", &format!("dir_step1/{i}.fas"), "--db", &format!("dir_step2/db/{i}")]), None).map(drop)
         })?;
         let t = (self.threads / self.nsp).max(1);
-        for q in 0..self.nsp {
-            println!(" phylome {}/{}: {}", q + 1, self.nsp, files[q]);
+        for (q, file) in files.iter().enumerate() {
+            println!(" phylome {}/{}: {file}", q + 1, self.nsp);
             // each DIAMOND output is parsed as soon as it is produced (the raw text is not kept)
             let parsed: Vec<Vec<(u32, Hit)>> = (0..self.nsp).into_par_iter().map(|db| {
                 let mut c = self.blastp(&format!("dir_step2/db/{db}"), &format!("dir_step1/{q}.fas"), t);
