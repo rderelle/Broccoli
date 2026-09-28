@@ -39,7 +39,7 @@ Efficiency metrics v1 vs v2 with 60 fungal proteomes using 8 CPUs (Intel Xeon Pl
 cargo build --release    # binary: target/release/broccoli
 ```
 
-You will also need <a href="https://github.com/bbuchfink/diamond">DIAMOND</a> v and <a href="http://www.microbesonline.org/fasttree/">FastTree</a> v2.1.11+.
+You will also need <a href="https://github.com/bbuchfink/diamond">DIAMOND</a> v0.9.30 or above and <a href="http://www.microbesonline.org/fasttree/">FastTree</a> v2.1.11 or above.
 
 
 ## Running Broccoli
