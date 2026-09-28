@@ -35,7 +35,7 @@ Efficiency metrics v1 vs v2 with 60 fungal proteomes using 8 CPUs (Intel Xeon Pl
 
 <!-- to be completed -->
 
-```
+```bash
 cargo build --release    # binary: target/release/broccoli
 ```
 
@@ -46,15 +46,15 @@ You will also need <a href="https://github.com/bbuchfink/diamond">DIAMOND</a> v0
 
 All parameters and options are available using the `-help` argument (see also the [**manual**](manual_Broccoli_v1.2.pdf) for more details):
 
-```
+```bash
 # display help menu
 broccoli -help
 
 # run Broccoli with 8 threads
-broccoli -dir my_directory -t 8
+broccoli -dir <input_dir> -t 8
 
 # use one combined DIAMOND search and NJ trees at step 2 (fastest)
-broccoli -dir my_directory -t 8 -combined_search -phylogenies nj
+broccoli -dir <input_dir> -t 8 -combined_search -phylogenies nj
 ```
 
 Broccoli will store the temporary and output files in 4 directories named `dir_step1` to `dir_step4` (one for each step) located in the current directory.
