@@ -4,7 +4,7 @@
 
 ## Overview
 
-Broccoli is designed to infer with high precision orthologous groups and pairs of proteins using a mixed phylogeny-network approach. Broccoli also detects chimeric proteins resulting from gene-fusion events and assigns these proteins to the corresponding orthologous groups.
+Broccoli is designed to infer orthologous groups and orthologous pairs using a mixed phylogeny-network approach. It also detects chimeric proteins resulting from gene-fusion events and assigns these proteins to the corresponding orthologous groups.
 
 <p align="center">
   <img width="650" height="auto" src="./images/overview_broccoli.png">
