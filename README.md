@@ -4,54 +4,66 @@
 
 ## Overview
 
-Broccoli is designed to infer with high precision orthologous groups and pairs of proteins using a mixed phylogeny-network approach. Briefly, Broccoli performs ultra- fast phylogenetic analyses on most proteins and builds a network of orthologous relationships. Orthologous groups are then identified from the network using a parameter-free machine learning algorithm (label propagation). Broccoli also detects chimeric proteins resulting from gene-fusion events and assigns these proteins to the corresponding orthologous groups.
-
-__Reference:__ <a href="https://academic.oup.com/mbe/advance-article/doi/10.1093/molbev/msaa159/5865275">Broccoli: combining phylogenetic and network analyses for orthology assignment</a>
+Broccoli is designed to infer with high precision orthologous groups and pairs of proteins using a mixed phylogeny-network approach. Broccoli also detects chimeric proteins resulting from gene-fusion events and assigns these proteins to the corresponding orthologous groups.
 
 <p align="center">
   <img width="650" height="auto" src="./images/overview_broccoli.png">
 </p>
 
-## Requirements
+## What's new in v2
 
-To run Broccoli, you need (see the [**manual**](manual_Broccoli_v1.2.pdf) for installation advices):
+Broccoli v2 is a re-implementation of Broccoli v1 (Python) in Rust, written with Claude Opus 5.5. It runs the same four steps with the same parameters and output files, as a single binary, and no longer needs Python or ete3.
 
-- a Unix system (MacOS or Linux)
-- Python version 3.6 or above
-- <a href="https://github.com/etetoolkit/ete">ete3 library</a>
-- <a href="https://github.com/bbuchfink/diamond">Diamond</a> version 0.9.30 or above
-- <a href="http://www.microbesonline.org/fasttree/">FastTree</a> version 2.1.11 or above (**single-thread version**)
+Outputs are near-identical to v1: the only differences come from ties, which v1 breaks arbitrarily and v2 deterministically (lowest id or first species); when v1 was modified to break them the same way, both versions gave identical trees, orthologous groups and pairs.
 
-### Installation via pixi
+v2 also adds two options that speed up the two most time-consuming parts of the analysis, similarity searches and phylogenetic analyses:
+- `-combined_search`: runs a single DIAMOND search of all proteins against one combined database, instead of one search per pair of proteomes, which avoids repeating the database and query setup and makes step 2 faster with near-identical results. Caveats: it uses more memory, and since e-values are computed with the mean proteome size, it should not be used with proteomes of very different sizes.
+- `-phylogenies nj`: builds gene trees with a <a href="https://github.com/rderelle/kamino">built-in neighbor-joining</a> instead of FastTree BioNJ (the default, as in v1), which is much faster per tree and removes the need for FastTree. Results are only marginally affected (slightly less accurate).
 
+Efficiency metrics v1 vs v2 with 60 fungal proteomes using 8 CPUs (only steps 1-3; Intel Xeon Platinum 8358 CPU @ 2.60 GHz):
+
+
+| Version | Options | Runtime (mn) | Peak memory (GB) |
+|---------|---------|--------------|------------------|
+| v1.4 (Python)   | default | 571             | 36            |
+| v2     | default | 419        | 4 |
+| v2 | `-combined_search` | 196 | 18 |
+| v2 | `-combined_search -phylogenies nj` | 106 | 18 |
+
+
+## Installation
+
+<!-- to be completed -->
+
+```bash
+cargo build --release    # binary: target/release/broccoli
 ```
-pixi lock
-pixi info # We get information about the environment
-pixi shell # Our shell is the environment
-```
+
+You will also need <a href="https://github.com/bbuchfink/diamond">DIAMOND</a> v0.9.30 or above and <a href="http://www.microbesonline.org/fasttree/">FastTree</a> v2.1.11 or above.
+
 
 ## Running Broccoli
 
 All parameters and options are available using the `-help` argument (see also the [**manual**](manual_Broccoli_v1.2.pdf) for more details):
 
-```
-python broccoli.py -help
-```
+```bash
+# display help menu
+broccoli -help
 
-To test Broccoli with the small example dataset present in the directory `example_dataset` (30 sec to 1mn):
+# run Broccoli with 8 threads
+broccoli -dir <input_dir> -t 8
 
-```
-python broccoli.py -dir example_dataset
+# use one combined DIAMOND search and NJ trees at step 2 (fastest)
+broccoli -dir <input_dir> -t 8 -combined_search -phylogenies nj
 ```
 
 Broccoli will store the temporary and output files in 4 directories named `dir_step1` to `dir_step4` (one for each step) located in the current directory.
 
-## Licence
+## Citation
 
-This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
+If you use Broccoli, please cite:
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+> Romain Derelle, Hervé Philippe, John K Colbourne. 2020.
+> Broccoli: combining phylogenetic and network analyses for orthology assignment.
+> [https://www.biorxiv.org/content/10.64898/2026.05.21.726148v2](https://academic.oup.com/mbe/article/37/11/3389/5865275)
 
-You should have received a copy of the GNU General Public License along with this program. If not, see http://www.gnu.org/licenses/.
-
-See "LICENSE" for full terms and conditions of usage.
