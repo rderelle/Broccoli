@@ -18,7 +18,7 @@ Outputs are near-identical to v1: the only differences come from ties, which v1 
 
 v2 also adds two options that speed up the two most time-consuming parts of the analysis, similarity searches and phylogenetic analyses:
 - `-combined_search`: runs a single DIAMOND search of all proteins against one combined database, instead of one search per pair of proteomes, which avoids repeating the database and query setup and makes step 2 faster with near-identical results. Caveats: it uses more memory, and since e-values are computed with the mean proteome size, it should not be used with proteomes of very different sizes.
-- `-phylogenies nj`: builds gene trees with a built-in neighbor-joining instead of FastTree BioNJ (the default, as in v1), which is about 100x faster per tree and removes the need for FastTree. Results are only marginally affected (slightly less accurate).
+- `-phylogenies nj`: builds gene trees with a <a href="https://github.com/rderelle/kamino">built-in neighbor-joining</a> instead of FastTree BioNJ (the default, as in v1), which is about 100x faster per tree and removes the need for FastTree. Results are only marginally affected (slightly less accurate).
 
 Efficiency metrics v1 vs v2 with 60 fungal proteomes using 8 CPUs (Intel Xeon Platinum 8358 CPU @ 2.60 GHz):
 
