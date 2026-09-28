@@ -1,0 +1,10 @@
+[package]
+name = "broccoli"
+version = "2.0.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+
+[dependencies]
+flate2 = "1.1.10"
+rayon = "1.12.0"
+rustc-hash = "2.1.3"
