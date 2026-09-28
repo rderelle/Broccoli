@@ -65,5 +65,5 @@ If you use Broccoli, please cite:
 
 > Romain Derelle, Hervé Philippe, John K Colbourne. 2020.
 > Broccoli: combining phylogenetic and network analyses for orthology assignment.
-> [https://www.biorxiv.org/content/10.64898/2026.05.21.726148v2](https://academic.oup.com/mbe/article/37/11/3389/5865275)
+> [Molecular Biology and Evolution](https://academic.oup.com/mbe/article/37/11/3389/5865275)
 
