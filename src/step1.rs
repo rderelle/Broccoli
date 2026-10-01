@@ -1,4 +1,4 @@
-//! Step 1: per-proteome kmer clustering. Proteins sharing a kmer are grouped and
+//! Step 1: per-proteome k-mer simplification. Proteins sharing a k-mer are grouped and
 //! only the longest one of each group is kept for the next steps.
 
 use crate::{create, fresh_dir, Opts, R};
@@ -14,8 +14,10 @@ use std::path::Path;
 pub fn run(o: &Opts) -> R<()> {
     let dir = Path::new(o.str("dir"));
     let (k, min_aa): (usize, usize) = (o.get("kmer_size")?, o.get("kmer_min_aa")?);
-    println!(" --- STEP 1: kmer clustering\n input dir: {}\n kmer size: {k}\n kmer nb aa: {min_aa}", dir.display());
-    if !dir.is_dir() { return Err(format!("the directory '{}' does not exist", dir.display()).into()) }
+    let (dir_arg, out) = (o.str("dir_arg"), o.str("output")); // as given by the user
+    println!(" --- STEP 1: k-mer simplification\n input dir: {dir_arg}\n output dir: {}\n kmer size: {k}\n kmer nb aa: {min_aa}",
+        if out.is_empty() { "." } else { out });
+    if !dir.is_dir() { return Err(format!("the directory '{dir_arg}' does not exist").into()) }
     fresh_dir("dir_step1")?;
 
     // input files, by name (species index and protein ids do not depend on compression)
@@ -25,7 +27,7 @@ pub fn run(o: &Opts) -> R<()> {
         .map(|e| e.file_name().to_string_lossy().to_string())
         .filter(|n| is_proteome(n))
         .collect();
-    if files.is_empty() { return Err(format!("no proteome file (.fas/.fasta/.faa, optionally .gz) in {}", dir.display()).into()) }
+    if files.is_empty() { return Err(format!("no proteome file (.fas/.fasta/.faa, optionally .gz) in {dir_arg}").into()) }
     files.sort();
 
     // pass 1: protein names only (ids, duplicate check); sequences are re-read per file below
@@ -45,14 +47,14 @@ pub fn run(o: &Opts) -> R<()> {
         }
     }
     if !dupli.is_empty() {
-        println!(" WARNING: some protein names are present multiple times, see dir_step1/duplicate_names.txt");
+        println!(" WARNING: some protein names are present multiple times, see {}", crate::shown("dir_step1/duplicate_names.txt").display());
         std::fs::write("dir_step1/duplicate_names.txt", format!("#protein_name\tfile1\tfile2\n{}\n", dupli.join("\n")))?;
     }
 
-    // pass 2: cluster each proteome and write its reduced version
+    // pass 2: simplify each proteome and write its reduced version
     let reps: Vec<Vec<u32>> = files.par_iter().enumerate().map(|(i, f)| {
         let seqs: Vec<Vec<u8>> = read_fasta(&dir.join(f))?.into_iter().map(|(_, s)| s).collect();
-        let rep = cluster(&seqs, k, min_aa);
+        let rep = simplify(&seqs, k, min_aa);
         let mut out = create(format!("dir_step1/{i}.fas"))?;
         for (j, s) in seqs.iter().enumerate() {
             if rep[j] as usize == j { writeln!(out, ">{}\n{}", offset[i] + j as u32, String::from_utf8_lossy(s))? }
@@ -106,10 +108,10 @@ pub fn read_fasta(path: &Path) -> R<Vec<(String, Vec<u8>)>> {
     Ok(v)
 }
 
-/// Single-linkage clustering of sequences sharing at least one informative kmer
-/// (>= min_aa distinct residues, no 'X' or '*'). Returns, for each sequence, the
-/// index of the longest sequence of its cluster (ties: lowest index).
-fn cluster(seqs: &[Vec<u8>], k: usize, min_aa: usize) -> Vec<u32> {
+/// Groups sequences sharing at least one informative k-mer (>= min_aa distinct
+/// residues, no 'X' or '*'), transitively. Returns, for each sequence, the index of
+/// the longest sequence of its group (ties: lowest index).
+fn simplify(seqs: &[Vec<u8>], k: usize, min_aa: usize) -> Vec<u32> {
     // every informative kmer as one u64: top bits of its hash | sequence | start (8 bytes
     // per kmer); sorting by hash then kmer brings equal kmers together
     let bits = |x: usize| usize::BITS - x.leading_zeros(); // bits needed for 0..=x
@@ -175,13 +177,13 @@ mod tests {
     }
 
     #[test]
-    fn cluster_keeps_longest() {
+    fn simplify_keeps_longest() {
         let a = b"ACDEFGHIKLMNPQ".to_vec();
         let mut b = a.clone();
         b.extend(b"RSTVW");
-        let c = b"WWWWWWWWWWWWWW".to_vec(); // low complexity: never clustered
+        let c = b"WWWWWWWWWWWWWW".to_vec(); // low complexity: never grouped
         let d = b"ACDEXGHIKLMNPQ".to_vec(); // contains X
-        let rep = super::cluster(&[a, b, c.clone(), c, d], 10, 5);
+        let rep = super::simplify(&[a, b, c.clone(), c, d], 10, 5);
         assert_eq!(rep, vec![1, 1, 2, 3, 4]);
     }
 }
