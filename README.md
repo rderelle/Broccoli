@@ -68,7 +68,7 @@ broccoli -dir <input_dir> -threads 8
 broccoli -dir <input_dir> -threads 8 -combined_search -phylogenies nj
 ```
 
-Broccoli will store the temporary and output files in 4 directories named `dir_step1` to `dir_step4` (one for each step) located in the current directory, or in the directory given with `-output` (e.g. `-output broccoli_insecta`).
+Broccoli will store the temporary and output files in 4 directories named `dir_step1` to `dir_step4` (one for each step) located in the current directory, or in the directory given with `-output` (e.g. `-output output_broccoli`).
 
 ## Citation
 
