@@ -1,6 +1,11 @@
+[![Cargo Build & Test](https://github.com/rderelle/Broccoli/actions/workflows/build.yml/badge.svg)](https://github.com/rderelle/Broccoli/actions/workflows/build.yml)
+[![Clippy check](https://github.com/rderelle/Broccoli/actions/workflows/clippy.yml/badge.svg)](https://github.com/rderelle/Broccoli/actions/workflows/clippy.yml)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](https://bioconda.github.io/recipes/broccoli/README.html)
+
 <p align="center">
   <img width="300" height="auto" src="./images/logo_broccoli.png">
 </p>
+
 
 ## Overview
 
@@ -33,31 +38,37 @@ Efficiency metrics v1 vs v2 with 60 fungal proteomes using 8 CPUs (only steps 1-
 
 ## Installation
 
-<!-- to be completed -->
-
 ```bash
-cargo build --release    # binary: target/release/broccoli
+conda install bioconda::broccoli
 ```
 
-You will also need <a href="https://github.com/bbuchfink/diamond">DIAMOND</a> v0.9.30 or above and <a href="http://www.microbesonline.org/fasttree/">FastTree</a> v2.1.11 or above.
+or from source:
+
+```bash
+git clone https://github.com/rderelle/Broccoli.git
+cd Broccoli
+cargo build --release           # binary: target/release/broccoli
+```
+
+Unless installed via Bioconda, you will also need <a href="https://github.com/bbuchfink/diamond">DIAMOND</a> v0.9.30 or above and <a href="http://www.microbesonline.org/fasttree/">FastTree</a> v2.1.11 or above (FastTree is not needed with `-phylogenies nj`).
 
 
 ## Running Broccoli
 
-All parameters and options are available using the `-help` argument (see also the [**manual**](manual_Broccoli_v1.2.pdf) for more details):
+All parameters and options are available using the `-help` argument. See the [**documentation**](https://docs.rs/broccoli-rs) for a full description of the input and output files, options and tips.
 
 ```bash
 # display help menu
 broccoli -help
 
 # run Broccoli with 8 threads
-broccoli -dir <input_dir> -t 8
+broccoli -dir <input_dir> -threads 8
 
 # use one combined DIAMOND search and NJ trees at step 2 (fastest)
-broccoli -dir <input_dir> -t 8 -combined_search -phylogenies nj
+broccoli -dir <input_dir> -threads 8 -combined_search -phylogenies nj
 ```
 
-Broccoli will store the temporary and output files in 4 directories named `dir_step1` to `dir_step4` (one for each step) located in the current directory.
+Broccoli will store the temporary and output files in 4 directories named `dir_step1` to `dir_step4` (one for each step) located in the current directory, or in the directory given with `-output` (e.g. `-output output_broccoli`).
 
 ## Citation
 
@@ -66,4 +77,3 @@ If you use Broccoli, please cite:
 > Romain Derelle, Hervé Philippe, John K Colbourne. 2020.
 > Broccoli: combining phylogenetic and network analyses for orthology assignment.
 > [Molecular Biology and Evolution](https://academic.oup.com/mbe/article/37/11/3389/5865275)
-

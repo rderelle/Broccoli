@@ -22,8 +22,9 @@ const HELP: &str = concat!("
  general options:
   -steps            steps to be performed, comma separated [default = 1,2,3,4]
   -threads          number of threads [default = 1]
+  -output, -o       directory where the dir_step* directories are written [default = current directory]
 
- STEP 1  kmer clustering:
+ STEP 1  k-mer simplification:
   -dir              directory containing the proteome files [required]
                     (.fas, .fasta or .faa, any case, optionally gzipped)
   -kmer_size        length of kmers [default = 100]
@@ -52,7 +53,7 @@ const HELP: &str = concat!("
 ");
 
 const DEFAULTS: &[(&str, &str)] = &[
-    ("steps", "1,2,3,4"), ("threads", "1"),
+    ("steps", "1,2,3,4"), ("threads", "1"), ("output", ""),
     ("dir", ""), ("kmer_size", "100"), ("kmer_min_aa", "15"),
     ("path_diamond", "diamond"), ("path_fasttree", "fasttree"), ("e_value", "0.001"),
     ("nb_hits", "6"), ("max_gap", "0.7"), ("phylogenies", "bionj"),
@@ -71,6 +72,7 @@ impl Opts {
         let mut args = std::env::args().skip(1);
         while let Some(a) = args.next() {
             let k = a.trim_start_matches('-').to_string();
+            let k = if k == "o" { "output".to_string() } else { k };
             match k.as_str() {
                 "h" | "help" => { print!("{HELP}"); std::process::exit(0) }
                 "not_same_sp" | "combined_search" => { m.insert(k, "true".into()); }
@@ -95,7 +97,7 @@ impl Opts {
 pub struct Proteins {
     pub files: Vec<String>, // species index -> proteome file name
     pub sp: Vec<u32>,       // protein id -> species index
-    pub rep: Vec<u32>,      // protein id -> id of its kmer-cluster representative
+    pub rep: Vec<u32>,      // protein id -> id of its representative (k-mer simplification)
     pub name: Vec<String>,  // protein id -> original name
 }
 
@@ -123,9 +125,17 @@ impl Proteins {
     }
 }
 
+/// Output directory (-output), as given by the user; Broccoli runs from inside it.
+static OUTPUT: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+
+/// Path of an output file as seen from the directory Broccoli was launched from (for messages).
+pub fn shown(p: impl AsRef<Path>) -> std::path::PathBuf {
+    Path::new(OUTPUT.get().map_or("", |s| s.as_str())).join(p)
+}
+
 pub fn lines(path: impl AsRef<Path>) -> R<std::io::Lines<BufReader<File>>> {
     let p = path.as_ref();
-    let f = File::open(p).map_err(|e| format!("cannot open {}: {e}", p.display()))?;
+    let f = File::open(p).map_err(|e| format!("cannot open {}: {e}", shown(p).display()))?;
     Ok(BufReader::new(f).lines())
 }
 
@@ -169,7 +179,7 @@ fn main() {
 }
 
 fn run() -> R<()> {
-    let o = Opts::parse()?;
+    let mut o = Opts::parse()?;
     println!("\n            Broccoli v{}\n", env!("CARGO_PKG_VERSION"));
     let start = std::time::Instant::now();
 
@@ -185,6 +195,30 @@ fn run() -> R<()> {
     }
     if !["bionj", "me", "ml", "nj"].contains(&o.str("phylogenies")) {
         return Err("-phylogenies should be 'bionj', 'me', 'ml' or 'nj'".into());
+    }
+    // output directory: run from inside it, after making the user's relative paths absolute
+    // (the input directory is still displayed as given)
+    let dir_arg = o.str("dir").to_string();
+    o.0.insert("dir_arg".into(), dir_arg);
+    if !o.str("output").is_empty() {
+        for k in ["dir", "path_diamond", "path_fasttree"] {
+            let p = o.str(k);
+            // programs given by name only are looked up in the PATH, not in the current directory
+            if !p.is_empty() && (k == "dir" || p.contains('/')) {
+                let abs = std::path::absolute(p)?.to_string_lossy().into_owned();
+                o.0.insert(k.to_string(), abs);
+            }
+        }
+        fs::create_dir_all(o.str("output")).map_err(|e| format!("cannot create the output directory '{}': {e}", o.str("output")))?;
+        std::env::set_current_dir(o.str("output"))?;
+        OUTPUT.set(o.str("output").to_string()).ok();
+    }
+    // each step needs the directories of all the previous ones
+    for d in 1..steps[0] {
+        if !Path::new(&format!("dir_step{d}")).is_dir() {
+            let hint = if OUTPUT.get().is_some() { " (with the same -output)" } else { "" };
+            return Err(format!("cannot find {}: run step {d} first{hint}", shown(format!("dir_step{d}")).display()).into());
+        }
     }
     if steps.contains(&2) {
         let builtin_nj = o.str("phylogenies") == "nj";
