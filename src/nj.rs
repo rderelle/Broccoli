@@ -77,7 +77,7 @@ impl BitAlignment {
         let stride = self.words * PLANES;
         let (a, b) = (&self.planes[i * stride..(i + 1) * stride], &self.planes[j * stride..(j + 1) * stride]);
         let (mut valid, mut mismatches) = (self.const_cols, 0);
-        for (x, y) in a.chunks_exact(PLANES).zip(b.chunks_exact(PLANES)) {
+        for (x, y) in a.as_chunks::<PLANES>().0.iter().zip(b.as_chunks::<PLANES>().0) {
             let both = x[VALID] & y[VALID];
             let diff = (x[0] ^ y[0]) | (x[1] ^ y[1]) | (x[2] ^ y[2]) | (x[3] ^ y[3]) | (x[4] ^ y[4]);
             valid += both.count_ones() as u64;
