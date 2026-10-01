@@ -1,8 +1,23 @@
 [package]
-name = "broccoli"
+name = "broccoli-rs"
 version = "2.0.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
+description = "Orthology inference combining phylogenies and network analysis"
+authors = ["Romain Derelle"]
+repository = "https://github.com/rderelle/Broccoli"
+documentation = "https://docs.rs/broccoli-rs"
+readme = "README.md"
+keywords = ["orthology", "phylogenetics", "bioinformatics", "proteomes", "genomics"]
+categories = ["science", "command-line-utilities"]
+exclude = ["/images", "/.github"]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "broccoli"
+path = "src/main.rs"
 
 [dependencies]
 flate2 = "1.1.10"
